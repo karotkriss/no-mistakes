@@ -6,6 +6,35 @@ import (
 	"testing"
 )
 
+func TestExtractHost(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		remote string
+		want   string
+	}{
+		{"https://github.com/user/repo.git", "github.com"},
+		{"git@github.com:user/repo.git", "github.com"},
+		{"https://gitlab.example.com/group/repo.git", "gitlab.example.com"},
+		{"git@gitlab.example.com:group/sub/repo.git", "gitlab.example.com"},
+		{"ssh://git@code.example.com:2222/group/repo.git", "code.example.com"},
+		{"https://user:token@code.example.com:8443/group/repo.git", "code.example.com"},
+		{"git://code.example.com/group/repo.git", "code.example.com"},
+		{"https://CODE.Example.COM/group/repo", "code.example.com"},
+		{"ssh://git@[::1]:22/group/repo.git", "[::1]"},
+		// A '@' inside the path must not be mistaken for a "user@" userinfo
+		// prefix: host extraction has to split off the path first.
+		{"https://code.example.com/group@prod/repo.git", "code.example.com"},
+		{"git@code.example.com:group@prod/repo.git", "code.example.com"},
+		{"https://user:token@code.example.com/group@prod/repo.git", "code.example.com"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		if got := ExtractHost(tt.remote); got != tt.want {
+			t.Errorf("ExtractHost(%q) = %q, want %q", tt.remote, got, tt.want)
+		}
+	}
+}
+
 func TestCheckBucketHelpers(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
