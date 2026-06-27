@@ -61,14 +61,31 @@ func ProjectPath(raw string) string {
 		if u, err := url.Parse(raw); err == nil {
 			path = u.Path
 		}
-	} else if colon := strings.Index(raw, ":"); colon >= 0 {
+	} else if colon := strings.Index(raw, ":"); colon >= 0 && !isWindowsDrivePath(raw) {
 		// scp-style: [user@]host:group/project.git -> group/project. The first
 		// ':' separates host from path, so the path is recovered whether or not
 		// a "user@" prefix is present (e.g. gitlab.example.com:group/project.git).
+		// A Windows drive-letter path (C:\...) carries a colon too, but it is a
+		// local filesystem path, not a remote URL, so it is excluded above.
 		path = raw[colon+1:]
 	}
 	path = strings.Trim(path, "/")
 	return strings.TrimSuffix(path, ".git")
+}
+
+// isWindowsDrivePath reports whether raw begins with a Windows drive specifier
+// like "C:\..." or "C:/...". Such a path's drive-letter colon must not be
+// mistaken for the host:path separator of scp-style SSH syntax, which would
+// otherwise turn a local filesystem path into a spurious "group/project".
+func isWindowsDrivePath(raw string) bool {
+	if len(raw) < 2 || raw[1] != ':' {
+		return false
+	}
+	c := raw[0]
+	if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+		return false
+	}
+	return len(raw) == 2 || raw[2] == '\\' || raw[2] == '/'
 }
 
 // pipelineJobsArgs returns the glab invocation that lists a pipeline's jobs.

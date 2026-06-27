@@ -34,6 +34,11 @@ func TestProjectPath(t *testing.T) {
 		{"ssh url", "ssh://git@gitlab.example.com:22/group/project.git", "group/project"},
 		{"empty", "", ""},
 		{"host only", "https://gitlab.example.com", ""},
+		// A Windows local filesystem path carries a drive-letter colon, but it is
+		// not scp-style host:path syntax: it must not be parsed into a project
+		// path or the job read would target a non-existent REST project.
+		{"windows drive path backslash", `C:\Users\me\repo`, ""},
+		{"windows drive path forward slash", "C:/Users/me/repo", ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
